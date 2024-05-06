@@ -124,6 +124,13 @@ def get_field_by_name(fields, field_name):
     return None, None
 
 
+def is_additonal_properties(fields):
+    return fields and len(fields) == 2 and all(
+        (f.get('name', None) == 'name'
+         and f.get('description', None) == 'additionalProperties name')
+        or (f.get('name', None) == 'value') for f in fields)
+
+
 def _merge_fields(destination_field, source_field):
     """Combines two SchemaField like dicts.
 
@@ -137,26 +144,56 @@ def _merge_fields(destination_field, source_field):
     Returns:
         A `google.cloud.bigquery.SchemaField` dict.
     """
-    field = copy.deepcopy(destination_field)
 
     dd = destination_field.get('description', None)
     sd = source_field.get('description', None)
     dft = destination_field.get('field_type', None)
     sft = source_field.get('field_type', None)
-    # use the  field with more information.
+    # use the field with more information.
     if ((not dd and sd) or (sd and dd and len(dd) < len(sd))):
-        field['description'] = sd
-        field['field_type'] = sft
-    # use the less specific type.
-    elif ((dft != 'RECORD' and dft != 'STRING') and sft == 'STRING'):
-        field['field_type'] = sft
-    df = destination_field.get('fields', [])
+        destination_field['description'] = sd
+        destination_field['field_type'] = sft
+
+    # use the less specific type. and join fields
+    # but don't overwrite the timestamp field as per
+    # https://github.com/GoogleCloudPlatform/professional-services/issues/900
+    elif (source_field.get('name', None) != 'timestamp' and
+          (dft != 'RECORD' and dft != 'STRING') and sft == 'STRING'):
+        destination_field['field_type'] = sft
+
+    # https://github.com/GoogleCloudPlatform/professional-services/issues/614
+    # Use the schema with the additonalProperties overrides. See
+    # api_schema._get_properties_map_field_list which creates the
+    # additionalProperties RECORD type and enforce_schema_data_types for where
+    # documents of type RECORD are converted to the REPEATED additonalProperties
+    # name value pairs.
+    def merge_additional_properties_fields(apf, fields):
+        i, value_field = get_field_by_name(apf, 'value')
+        for f in fields:
+            if f.get('name', None) not in ('name', 'value'):
+                value_field = _merge_fields(value_field, f)
+        apf[i] = value_field
+
     sf = source_field.get('fields', [])
-    merged_fields = _merge_schema(df, sf)
-    # recursivly merge nested fields.
-    if merged_fields != df:
-        field['fields'] = merged_fields
-    return field
+    df = destination_field.get('fields', [])
+    if is_additonal_properties(sf) and not is_additonal_properties(df):
+        destination_field['mode'] = 'REPEATED'
+        sf = copy.deepcopy(sf)
+        merge_additional_properties_fields(sf, df)
+        destination_field['fields'] = sf
+    elif is_additonal_properties(df) and not is_additonal_properties(sf):
+        destination_field['mode'] = 'REPEATED'
+        merge_additional_properties_fields(df, sf)
+        destination_field['fields'] = df
+    elif is_additonal_properties(df) and is_additonal_properties(sf):
+        destination_field['mode'] = 'REPEATED'
+        merge_additional_properties_fields(df, sf)
+        destination_field['fields'] = df
+    else:
+        mf = _merge_schema(df, sf)
+        if mf:
+            destination_field['fields'] = mf
+    return destination_field
 
 
 def _merge_schema(destination_schema, source_schema):
@@ -365,8 +402,16 @@ def sanitize_property_value(property_value, depth=0, num_properties=0):
 
     # sanitize each nested list element.
     if isinstance(property_value, list):
-        for array_item in property_value:
-            sanitize_property_value(array_item, depth, num_properties)
+        for i in range(len(property_value)):
+            if isinstance(property_value[i], (dict, list)):
+                sanitize_property_value(property_value[i],
+                                        depth, num_properties)
+            else:
+                # if the list element has a primitive type, we need to
+                # re-affect the sanitized value
+                property_value[i] = sanitize_property_value(
+                    property_value[i],
+                    depth, num_properties)
 
     # and each nested json object.
     if isinstance(property_value, dict):
@@ -448,6 +493,7 @@ def enforce_schema_data_types(resource, schema):
             if field.get('mode', 'NULLABLE') == 'REPEATED':
                 # satisfy array condition by converting dict into
                 # repeated name value records.
+                # this handles any 'additonalProperties' types.
                 if (field['field_type'] == 'RECORD' and
                     isinstance(resource_value, dict)):
                     resource_value = [{'name': key, 'value': val}

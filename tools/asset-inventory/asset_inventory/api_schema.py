@@ -41,7 +41,7 @@ class APISchema(object):
         discovery_document = None
         # Ignore discovery document urls that aren't urls.
         if dd_url and dd_url.startswith('http'):
-            response = requests.get(dd_url)
+            response = requests.get(dd_url, timeout=3.05)
             if response.status_code == 200:
                 try:
                     discovery_document = response.json()
@@ -269,7 +269,7 @@ class APISchema(object):
     def _get_document_resources(cls, document):
         if document.get('schemas'):
             return document['schemas']
-        return document['definitions']
+        return document.get('definitions', [])
 
     @classmethod
     def _translate_resource_to_schema(cls, resource_name, document):

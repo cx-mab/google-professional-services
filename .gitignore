@@ -17,6 +17,7 @@ __pycache__/
 *$py.class
 dist/
 lib/
+!examples/terraform-resource-change-policy-library/lib
 *.egg-info/
 .cache
 pytestdebug.log
@@ -36,6 +37,8 @@ node_modules/
 .coverage
 htmlcov/
 *.iml
+**/target
+
 
 # Terraform
 # See: https://github.com/github/gitignore/blob/master/Terraform.gitignore
@@ -48,3 +51,18 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+/cloudbuild/.terraform.lock.hcl
+.vscode/
+tools/ipam-autopilot/provider/bin/terraform-provider-ipam_0.3_darwin_amd64
+tools/ipam-autopilot/provider/bin/terraform-provider-ipam_0.3_darwin_arm64
+tools/ipam-autopilot/provider/bin/terraform-provider-ipam_0.3_freebsd_386
+tools/ipam-autopilot/provider/bin/terraform-provider-ipam_0.3_freebsd_amd64
+tools/ipam-autopilot/provider/examples/.terraform.lock.hcl
+tools/ipam-autopilot/container/.vscode/launch.json
+tools/ipam-autopilot/infrastructure/.terraform.lock.hcl
+tools/ipam-autopilot/container/.vscode/launch.json
+tools/ipam-autopilot/examples/.terraform.lock.hcl
+tools/bq-visualizer/.angular
+
+terraform.tfvars
+

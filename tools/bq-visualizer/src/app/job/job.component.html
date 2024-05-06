@@ -1,8 +1,41 @@
+<!--
+/*
+ * Copyright (C) 2021 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+-->
 <div class="job_display">
-  <mat-grid-list cols="2" rowHeight="200px">
+  <mat-grid-list cols="3" rowHeight="320px">
     <mat-grid-tile [colspan]="1" [rowspan]="1">
       <app-projects (getJobs)="getJobs($event)"></app-projects>
       <!-- this receives the event from the projects component -->
+    </mat-grid-tile>
+    <mat-grid-tile [colspan]="1" [rowspan]="1">
+      <mat-card class="dashboard-card">
+        <mat-card-title> Get by Job Id</mat-card-title>
+        <mat-grid-list cols="10" rowHeight="3em">
+          <mat-grid-tile colspan="10">
+            <mat-form-field>
+              <input matInput id="jobId" placeholder="<project>:<location>.<jobid>" [(ngModel)]="jobId">
+
+            </mat-form-field>
+          </mat-grid-tile>
+          <mat-grid-tile colspan="10">
+            <button mat-raised-button (click)="loadJob()">GET</button>
+          </mat-grid-tile>
+        </mat-grid-list>
+      </mat-card>
     </mat-grid-tile>
     <mat-grid-tile [colspan]="1" [rowspan]="1">
       <mat-card class="dashboard-card">
@@ -11,13 +44,25 @@
           Upload job files that have previously been downloaded to the computer
         </mat-card-subtitle>
         <mat-card-content class="dashboard-card-content">
-          <button mat-raised-button (click)="openInput()">
-            Select File to Upload
-          </button>
-          <input id="fileInput" hidden type="file" (change)="fileChange($event.target.files)" />
-          <button mat-button [disabled]="!planFile" (click)="upload()">
-            Upload
-          </button>
+          <mat-grid-list cols="10">
+            <mat-grid-tile colspan="10">
+              <button mat-raised-button (click)="openInput()">
+                Select File to Upload
+              </button>
+              <input id="fileInput" hidden type="file" (change)="fileChange($event.target.files)" />
+            </mat-grid-tile>
+            <mat-grid-tile colspan="10" >
+              <span id="filenamedisp">
+                nothing selected
+              </span>
+            </mat-grid-tile>
+            <mat-grid-tile colspan="10">
+              <button mat-raised-button [disabled]="!planFile" (click)="upload()">
+                Upload
+              </button>
+            </mat-grid-tile>
+
+          </mat-grid-list>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>

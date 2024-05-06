@@ -27,9 +27,11 @@ To get documentation on the script options run:
 """
 
 import argparse
+import csv
 import json
 import logging
 import os
+import io
 from collections import OrderedDict
 
 import apache_beam as beam
@@ -40,7 +42,7 @@ from google.auth.exceptions import GoogleAuthError
 from google.cloud import datastore
 
 
-class FileCoder:
+class FileCoder(beam.coders.Coder):
     """Encode and decode CSV data coming from the files."""
 
     def __init__(self, columns):
@@ -49,8 +51,6 @@ class FileCoder:
         self._delimiter = ","
 
     def encode(self, value):
-        import csv
-        import io
         st = io.StringIO()
         cw = csv.DictWriter(st,
                             self._columns,
@@ -61,8 +61,6 @@ class FileCoder:
         return st.getvalue().strip('\r\n')
 
     def decode(self, value):
-        import csv
-        import io
         st = io.StringIO(value)
         cr = csv.DictWriter(st,
                             self._columns,
